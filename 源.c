@@ -2,108 +2,117 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
-typedef struct Vector
+typedef struct ListNode
 {
-	int* data;//该指针类型决定了开辟数据的类型
-	int size, length;
-}Vector;
-Vector* init(int n)
+	int data;//数据域
+	struct ListNode* next;
+}ListNode;//链表的节点与链表本身穿起来是两个结构
+typedef struct LinkList
 {
-	Vector* vec = (Vector*)malloc(sizeof(Vector));//看到内存开辟函数首先想到失败会怎样
-	if (vec == NULL)return vec;//若失败则直接返回空指针
-	vec->data = (int*)malloc(sizeof(int) * n);//data负责维护存放数据的那一块堆区内存
-	vec->size = n;
-	vec->length = 0;
-	return vec;//堆区空间在函数结束后不会自动释放，所以只要把指针传出去就可以在函数外维护
-}//顺序表的初始化操作
-int expand(Vector* vec)
+	ListNode head;//虚拟头结点，可以想象成第负一个节点，其本身也是一个节点类型
+	int length;//链表的总长度
+}LinkList;//链表的结构定义分为两部分，所以有两种初始化
+ListNode* init_listnode(int val)//传进去一个值，传出来一个指向该节点的指针
 {
-	int new_size = 2 * vec->size;//不能直接vec->size*=2; 要确保内存扩展成功后再改变size的值
-	int* ptr = (int*)realloc(vec->data, new_size*sizeof(int));
-	if (!ptr)return 0;
-	else
-	{
-		vec->size = new_size;
-		vec->data = ptr;
-		return 1;
-	}
+	ListNode* p = (ListNode*)malloc(sizeof(ListNode));
+	if (!p)return p;
+	p->data = val;
+	p->next = NULL;//初始化一个节点之后next指针为空
+	return p;
 }
-
-int insert(Vector* vec, int ind, int val)//ind 表示index   val表示value
+LinkList* init_linklist()
 {
-	if (vec == NULL)return 0;//非法操作
-	if (vec->size == vec->length)
-	{
-		if (!expand(vec))return 0;
-		printf("Expand Vector size to %d succeeded\n", vec->size);
-	}
-	if (ind<0 || ind>vec->length)return 0;//下标小于零或下标大于当前元素的  下标等于length 的时候是合法的
-	for (int i = vec->length;i > ind;i--)//将所有元素都后移一位，为待插入元素留出空位
-	{
-		vec->data[i] = vec->data[i-1];
-	}
-	vec->data[ind] = val;//用指针维护一个顺序表，使用方法与数组类似
-	vec->length += 1;
-	return 1;
-}//实现插入操作
-int erase(Vector* vec, int ind)
+	LinkList* l = (LinkList*)malloc(sizeof(LinkList));
+	if (!l)return l;
+	l->head.next= NULL;//虚拟头节点的下一位才算是第零位，注意链表里也有第零位的说法
+	l->length = 0;
+	return l;
+}//有两个初始化就有两个销毁操作
+void clear_listnode(ListNode* node)
 {
-	if (vec == NULL)return 0;
-	if (vec->length == 0)return 0;
-	if (ind < 0 || ind >= vec->length)return 0;//先判断此次操作合法性
-	for (int i = ind;i < vec->length-1;i++)
-	{
-		vec->data[i] = vec->data[i + 1];
-	}
-	vec->length-=1;
-	return 1;
-}//删除操作
-void clear(Vector* vec)
-{
-	if (vec == NULL)return;
-	free(vec->data);
-	free(vec);
+	if (!node)return;
+	free(node);//如果链表节点的数据域是malloc出来的，那得先销毁数据域再销毁节点本身
 	return;
-}//顺序表的销毁
-void output(Vector* vec)
-{
-	if (!vec)return;
-	printf("Vector(%d)=[", vec->length);
-	for (int i = 0;i < vec->length;i++)
-	{
-		if (i)printf(", ");
-		printf("%d", vec->data[i]);
-	}
-	printf("]\n\n");
-	return;//即使返回空值，也要礼貌性的return一下
 }
+void clear_linklist(LinkList* l)
+{
+	if (!l)return;
+	ListNode* p = l->head.next, * q;
+	while (p)//顺着链表去销毁每一个节点
+	{
+		q = p->next;
+		clear_listnode(p);//函数里调用的函数必须在其上面定义好了
+		p = q;
+	}
+	free(l);
+	return;
+}
+int insert(LinkList* l, int ind, int val)//返回值代表成功或失败
+{
+	if (!l)return 0;
+	if (ind<0 || ind>l->length)return 0;
+	ListNode* p = &(l->head), * node = init_listnode(val);
+	while (ind--)//从虚拟头节点开始，向后走ind步，注意虚拟头节点也是个节点类型的结构体
+	{
+		p = p->next;//从循环出来后p指向待插入位置的前一个位置
+	}
+	node->next = p->next;//这种指针作为右值存在的时候理解为某一结点的地址，第一次给链表添加值时，这一句是把NULL给NULL
+	p->next = node;//作为左值存在的时候理解为某一节点内指针域存放的值
+	l->length += 1;
+	return 1;
+}
+int erase(LinkList* l, int ind)
+{
+	if (!l)return 0;
+	if (ind < 0 || ind >= l->length)return 0;
+	ListNode* p = &(l->head), * q;
+	while (ind--)
+	{
+		p = p->next;
+	}
+	q = p->next->next;//p指向待删除节点的前一个位置，两个->next指向待删除节点的下一个位置，先把该位置保存
+	clear_listnode(p->next);//删除待删除节点
+	p->next = q;//将p中指针域赋值为它本来下一个节点的下一个节点的地址
+	l->length -= 1;//增添和删除都要把记录长度的length自减
+	return 1;
+}
+void output(LinkList* l)//输出链表也是结构操作
+{
+	printf("LinkList(%d) : ", l->length);
+	for (ListNode* p = l->head.next;p;p = p->next)//第一个条件声明并初始化一个变量，指向第零个节点，第二个判断p是否为空指针，第三个移位p
+	{
+		printf("%d -> ", p->data);
+	}
+	printf("NULL\n");
+	return;
+}
+#define MAX_OP 30
 int main(void)
 {
 	srand(time(0));
-	#define MAX_OP 20
-	Vector* vec = init(1);
-	int op, ind, val;
+	LinkList* l = init_linklist();
 	for (int i = 0;i < MAX_OP;i++)
 	{
-		op = rand() % 2;
-		ind = rand() % (vec->length + 1);//模零是非法的
-		val = rand() % 100;
+		int op = rand() % 3;
+		int ind = rand() % (l->length + 1);
+		int val = rand() % 100;
 		switch (op)
 		{
 		case 0:
-		{
-			insert(vec, ind, val);
-			printf("Inserted %d at %d to Vector, the length now is %d\n", val, ind, vec->length);
-		}break;
 		case 1:
 		{
-			if (ind == vec->length)continue;//switch case 语句放在循环内的
-			erase(vec, ind);//erase确实不会改动下标为length的内存，但该分支结构仍会输出一遍，所以上一句语句是为了遇到此情况时不再输出下面的printf
-			printf("Erased item at %d from Vector, the length now is %d\n", ind, vec->length);
+			printf("Inserted %d at %d to LinkList = %d\n",//注意逗号打到末尾可以换行继续输入
+				val, ind, insert(l, ind, val));//最后一个%d表征是否成功
+		}break;
+		case 2:
+		{
+			printf("Erased item at %d from LinkList = %d\n",
+				ind, erase(l, ind));
 		}break;
 		}
-		output(vec);
+		output(l);
+		printf("\n");
 	}
-
+	clear_linklist(l);
 	return 0;
 }
