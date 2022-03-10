@@ -2,128 +2,103 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
-#define MAX_OP 40
-typedef struct ListNode
+typedef struct Queue
 {
-	int data;
-	struct ListNode* next;
-}ListNode;
-
-typedef struct LinkedList
-{
-	ListNode head;
+	int* data;
+	int head, tail;
 	int length;
-}LinkedList;
+}Queue;
 
-LinkedList* init_linkedlist()
+Queue* init(int n)
 {
-	LinkedList* p = (LinkedList*)malloc(sizeof(LinkedList));
-	if (!p)return p;
-	p->head.next = NULL;
-	p->length = 0;
-	return p;
+	Queue* q = (Queue*)malloc(sizeof(Queue));
+	if (!q)return (q);//申请完内存之后第一件事就是判定
+	q->data = (int*)malloc(sizeof(int) * n);
+	q->head = q->tail = 0;//全新赋值方式
+	q->length = n;//length表示的是数据域的总长度
+	return (q);
 }
 
-ListNode* init_listnode(int val)
+int empty(Queue* q)//Judge whether the queue is empty
 {
-	ListNode* p = (ListNode*)malloc(sizeof(ListNode));
-	if (!p)return p;
-	p->data = val;
-	p->next = NULL;
-	return p;
+	if (!q)return 0;
+	return(q->head == q->tail);//若队列为空返回一
 }
 
-int insert(LinkedList* l, int ind, int val)
+int front(Queue* q)
 {
-	if (!l)return 0;
-	if (ind<0 || ind>l->length)return 0;
-	ListNode* p = &(l->head),*q=init_listnode(val);
-	while (ind--)
-	{
-		p = p->next;
-	}
-	q->next = p->next;
-	p->next = q;
-	l->length += 1;
+	if (!q)return 0;
+	return (q->data[q->head]);
+}
+
+int push(Queue* q, int val)
+{
+	if (!q)return 0;
+	if (q->tail == q->length)return 0;//tail和head 都是下标，tail并不是最后一个元素的下标，而是比这个元素的下标大一
+	q->data[q->tail++] = val;
 	return 1;
 }
 
-void clear_listnode(ListNode* p)
+int pop(Queue* q)
 {
-	if (!p)return;
-	free(p);
-	return;
-}
-
-void clear_linkedlist(LinkedList* l)
-{
-	if (!l)return;
-	ListNode* q;
-	for (ListNode* p = l->head.next;p;p = p->next)
-	{
-		q = p->next;
-		clear_listnode(p);//最好调用一下上面的函数，不要直接free
-		p = q;
-	}
-	free(l);
-	return;
-}
-
-int erase(LinkedList* l, int ind)
-{
-	if (!l)return 0;
-	if (ind < 0 || ind >= l->length)return 0;
-	ListNode* p = &(l->head),*q;
-	while (ind--)
-	{
-		p = p->next;
-	}
-	q = p->next->next;
-	clear_listnode(p->next);
-	p->next = q;//若没有上面一行代码，这一步就会导致内存泄漏
-	l->length--;
+	if (!q)return 0;
+	if (empty(q))return 0;
+	q->head++;
 	return 1;
 }
 
-
-void output(LinkedList* l)
+void clear(Queue* q)
 {
-	if (!l)return;
-	printf("LinkedList(%d): ", l->length);
-	for (ListNode* p = l->head.next;p;p = p->next)
+	if (!q)return;
+	free(q->data);
+	free(q);
+		return;
+}
+
+void output(Queue* q)
+{
+	printf("[");
+	for (int i = q->head;i < q->tail;i++)
 	{
-		printf("%d -> ", p->data);
+		if (i == q->head)
+		{
+			printf("%d",q->data[q->head]);
+			continue;
+		}
+		printf(" %d", q->data[i]);
 	}
-	printf("NULL\n");
-	return;
+	printf("]\n");
 }
 int main(void)
 {
 	srand(time(0));
-	LinkedList* l = init_linkedlist();
-	int op, val,ind;
+	#define MAX_OP 20
+	Queue* q = init(MAX_OP);
 	for (int i = 0;i < MAX_OP;i++)
 	{
-		op = rand() % 3;
-		val = rand() % 100;
-		ind = rand() % (l->length + 1);
+		int val = rand() % 100, op = rand() % 2;
 		switch (op)
 		{
-		case 0:
-		case 1:
-		{
-			printf("Inserted %d at %d to LinkedList = %d\n", 
-				val, ind, insert(l, ind, val));
-		}break;
-		case 2:
-		{
-			printf("Erased item at %d in LinkedList = %d\n", 
-				ind, erase(l, ind));
-		}break;
+			case 0:
+			{
+				printf("Push %d to queue = %d\n", val, push(q, val));
+			}break;
+			case 1:
+			{
+				int head = front(q);
+				int ret = pop(q);
+				if (!ret)
+				{
+					printf("The queue is empty, pop from queue = %d\n",ret);
+					break;
+				}
+				printf("Pop %d from queue = %d\n", head, ret);
+				break;
+
+			}
 		}
-		output(l);
-		printf("\n");
+		output(q);
 	}
-	clear_linkedlist(l);//若没有这行，堆区内存没有归还也要内存泄漏
+
 	return 0;
 }
