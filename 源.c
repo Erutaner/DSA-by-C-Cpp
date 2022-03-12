@@ -2,130 +2,109 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
-typedef struct Queue
+
+typedef struct Stack
 {
 	int* data;
-	int head, tail;
-	int length, cnt;
-}Queue;
+	int top, size;
+}Stack;
 
-Queue* init(int n)
+Stack* init(int n)
 {
-	Queue* q = (Queue*)malloc(sizeof(Queue));
-	if (!q)return q;
-	q->data = (int*)malloc(sizeof(int) * n);
-	if (!(q->data))return q;
-	q->head = q->tail = q->cnt = 0;
-	q->length = n;//忘记设置length长度
-	return q;//忘记返回值类型为指针
+	Stack* s = (Stack*)malloc(sizeof(Stack));
+	if (!s)return s;
+	s->data = (int*)malloc(sizeof(int) * n);
+	s->size = n;
+	s->top = -1;
+	return s;
 }
 
-int empty(Queue* q)
+int top(Stack* s)
 {
-	if (!q)return 0;
-	return q->cnt==0;//我写为了  q->head == q->tail, 若head与tail重合，有可能是head在最前面，队列刚刚放满，tail回到第一个元素的位置，此时队列是满的
+	if (empty(s))return 0;
+	return s->data[s->top];
 }
 
-int front(Queue* q)
+int push(Stack* s,int val)
 {
-	if (!q)return 0;
-	if (!q->cnt)return 0;
-	return (q->data[q->head]);
-}
-
-int push(Queue* q, int val)
-{
-	if (!q)return 0;
-	if (q->cnt == q->length)return 0;
-	q->data[q->tail++] = val;
-	if (q->tail == q->length)q->tail -= q->length;//我将这一行放在了上一行上面，则会导致函数调用结束后 tail“指针”越界的现象，
-	q->cnt++;
+	if (!s)return 0;
+	if (s->top + 1 == s->size)return 0;
+	s->top += 1;
+	s->data[s->top] = val;
 	return 1;
 }
 
-int pop(Queue* q)
+int pop(Stack* s)
 {
-	if (!q)return 0;
-	if (empty(q))return 0;
-	q->head++;
-	if (q->head == q->length)
-		q->head -= q->length;
-	q->cnt--;
+	if (!s)return 0;
+	if (empty(s))return 0;
+	s->top -= 1;
 	return 1;
 }
 
-void clear(Queue* q)
+int empty(Stack* s)
 {
-	if (!q)return;
-	free(q->data);
-	free(q);
+	if (!s)return 2;
+	return s->top == -1;
+}
+
+void clear(Stack* s)
+{
+	if (!s)return;
+	free(s->data);
+	free(s);
 	return;
 }
 
-void output(Queue* q)
+void output(Stack* s)
 {
-	if (!q)return;
-	int ind = 0;
-	printf("Queue = [");
-	for (int i = q->head, j = 0;j < q->cnt;j++)
+	printf("Stack(%d) = [", s->top + 1);
+	for (int i = s->top;i >= 0;i--)
 	{
-		ind = (i + j) % q->length;//我模成了cnt
-		if (ind == q->head)
-		{
-			printf("%d", q->data[ind]);
-		}
+		if (i == s->top)
+			printf("%d", s->data[i]);
 		else
-		{
-			printf(" %d", q->data[ind]);
-		}
+			printf(" %d", s->data[i]);
 	}
 	printf("]\n");
 	return;
 }
-
 int main(void)
 {
-	#define MAX_OP 20
 	srand(time(0));
-	Queue* q = init(MAX_OP);
+	#define MAX_OP 20
+	Stack* s = init(MAX_OP);
 	for (int i = 0;i < MAX_OP;i++)
 	{
-		int val = rand() % 100;
-		int op = rand() % 2;
+		int op = rand() % 3, val = rand() % 100;
 		switch (op)
 		{
 			case 0:
 			{
-				printf("Push %d to queue = %d\n", val, push(q, val));
-			}break;
+				printf("Push %d to stack = %d\n", val, push(s, val));
+				break;
+			}
 			case 1:
 			{
-				if (empty(q))
-				{
-					printf("The queue is empty, pop from queue = %d\n", pop(q));
-					break;
-				}
+				if (empty(s))
+					printf("The stack is empty, pop from stack = %d\n", pop(s));
+				else if (empty(s) == 2)
+					printf("NULL!\n");
 				else
 				{
-					int fir = front(q);
-					printf("Pop %d from queue = %d\n", fir, pop(q));
-					break;
+					int fir = top(s);
+					printf("Pop %d from stack = %d\n", fir, pop(s));
 				}
+				break;
+			}
+			case 2:
+			{
+				printf("Push %d to stack = %d\n", val, push(s, val));
+				break;
 			}
 		}
-		output(q);
+		output(s);
 	}
-	printf("Queue head = %d               Queue tail = %d                Queue count = %d\n",
-		q->head,
-		q->tail,
-		q->cnt);
-	for (int i = 0;i < MAX_OP;i++)
-	{
-		int val = rand() % 100;
-		printf("Push %d to queue = %d\n", val, push(q, val));
-		output(q);
-	}
-	clear(q);
 
 	return 0;
 }
